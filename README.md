@@ -33,3 +33,5 @@ cargo install --path .
 
 まだほとんど何も揃っていません。
 現時点では一部の Completion のみ対応。
+
+テストなので、 Language server を起動させると同時に同ディレクトリに log ファイルが入ります。
