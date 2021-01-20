@@ -1,0 +1,77 @@
+# 予め定められた completion items
+
+[[primitive]]
+label = "let-inline"
+detail = "inline-cmd declaration"
+insert_text = 'let-inline ${1:ctx} \\${2:cmd-name} ${3:args} = $0'
+insert_text_format = "snippet"
+documentation = '''
+# let-inline
+
+declare new inline-cmd.
+
+```
+let-inline \pangram = {The quick fox jumps over the lazy dog.}
+let-inline ctx \textbf = {The quick fox jumps over the lazy dog.}
+```
+'''
+
+[[primitive]]
+label = "let-block"
+detail = "block-cmd declaration"
+insert_text = 'let-block ${1:ctx} +${2:cmd-name} ${3:args} = $0'
+insert_text_format = "snippet"
+documentation = '''
+# let-block
+
+declare new block-cmd.
+
+```
+let-inline \pangram = {The quick fox jumps over the lazy dog.}
+let-inline ctx \textbf = {The quick fox jumps over the lazy dog.}
+```
+'''
+
+[[primitive]]
+label = "read-inline"
+detail = "context -> inline-text -> inline-boxes"
+insert_text = "read-inline ${1:ctx} ${2:it}"
+insert_text_format = "snippet"
+documentation = '''
+# read-inline
+
+Convert inline-text into inline-boxes based on the given context.
+
+```
+let ib = read-inline ctx {The quick fox jumps...}
+```
+'''
+
+[[primitive]]
+label = "line-break"
+detail = "bool -> bool -> context -> inline-boxes -> block-boxes"
+insert_text = "line-break ${1:true} ${2:true} ${3:ctx} ${4:ib}"
+insert_text_format = "snippet"
+documentation = '''
+# line-break
+
+Perform row splitting for the given inline-boxes.
+
+```
+let ib = read-inline ctx {The quick fox jumps...}
+let bb = line-break true true ctx (ib ++ inline-fil)
+```
+'''
+
+[[primitive]]
+label = "inline-fil"
+detail = "inline-boxes"
+documentation = '''
+# inline-fil
+
+Infinitely extending glue. Often appended to the end of a paragraph.
+
+```
+let bb = line-break true true ctx (ib ++ inline-fil)
+```
+'''
