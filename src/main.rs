@@ -1,10 +1,20 @@
-use std::{collections::HashMap, error::Error};
+use std::error::Error;
 
-use log::info;
-use maquette_satysfi_language_server::completion::get_completion_response;
+use log::{debug, info};
+use maquette_satysfi_language_server::{
+    completion::get_completion_response,
+    parser::{Rule, SatysfiParser},
+    Buffers,
+};
+use pest::Parser;
 use simplelog::*;
 
-use lsp_types::{CompletionOptions, InitializeParams, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, notification::{DidChangeTextDocument, DidOpenTextDocument}, request::Completion};
+use lsp_types::{
+    notification::{DidChangeTextDocument, DidOpenTextDocument},
+    request::Completion,
+    CompletionOptions, InitializeParams, ServerCapabilities, TextDocumentSyncCapability,
+    TextDocumentSyncKind,
+};
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
 
@@ -53,7 +63,7 @@ fn main_loop(
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
     info!("starting example main loop");
 
-    let mut bufs: HashMap<String, String> = HashMap::new();
+    let mut buffers = Buffers::default();
 
     for msg in &connection.receiver {
         info!("got msg: {:?}", msg);
@@ -68,8 +78,9 @@ fn main_loop(
                     "textDocument/completion" => {
                         let (id, params) = cast_req::<Completion>(req).unwrap();
 
-                        let uri = params.text_document_position.text_document.uri.to_string();
-                        let resp = get_completion_response(&bufs.get(&uri), params);
+                        let uri = params.text_document_position.text_document.uri.clone();
+                        let text = buffers.get(&uri);
+                        let resp = get_completion_response(text, params);
 
                         if let Some(resp) = resp {
                             let result = serde_json::to_value(&resp).unwrap();
@@ -81,36 +92,44 @@ fn main_loop(
                             connection.sender.send(Message::Response(resp))?;
                             continue;
                         }
-
                     }
                     _ => unreachable!(),
                 }
                 // ...
             }
+
             Message::Response(resp) => {
                 info!("got response: {:?}", resp);
             }
+
             Message::Notification(not) => {
                 info!("got notification: {:?}", not);
                 let method = &not.method;
                 match method.as_str() {
                     "textDocument/didChange" => {
                         let params = cast_notif::<DidChangeTextDocument>(not).unwrap();
+                        let uri = params.text_document.uri;
                         if let Some(change) = params.content_changes.get(0) {
-                            let uri = params.text_document.uri.to_string();
-                            let buf = change.text.to_owned();
-                            bufs.entry(uri).or_insert(buf);
+                            let text = change.text.clone();
+
+                            let pairs = SatysfiParser::parse(Rule::program, &text);
+                            debug!("{:?}", pairs);
+
+                            buffers.set(uri, text);
                         }
-                    },
+                    }
                     "textDocument/didOpen" => {
                         let params = cast_notif::<DidOpenTextDocument>(not).unwrap();
-                        let uri = params.text_document.uri.to_string();
-                        let buf = params.text_document.text;
-                        bufs.entry(uri).or_insert(buf);
-                    },
+                        let uri = params.text_document.uri;
+                        let text = params.text_document.text;
+
+                        let pairs = SatysfiParser::parse(Rule::program, &text);
+                        debug!("{:?}", pairs);
+
+                        buffers.set(uri, text);
+                    }
                     _ => (),
                 }
-
             }
         }
     }

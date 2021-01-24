@@ -16,22 +16,19 @@ const COMPLETION_RESOUCES: &str = include_str!("resource/completion.toml");
 
 /// 補完候補を返す。
 pub fn get_completion_response(
-    buf: &Option<&String>,
+    text: Option<&str>,
     params: CompletionParams,
 ) -> Option<CompletionResponse> {
-    if buf.is_none() {
-        return None;
-    }
-    let buf: &str = buf.unwrap();
+    let text = text?;
 
     let pos = params.text_document_position.position;
 
-    let completion_list = get_completion_list(buf, &pos);
+    let completion_list = get_completion_list(text, &pos);
     Some(CompletionResponse::List(completion_list))
 }
 
 /// 無条件で返すことのできる補完候補を取得する。
-fn get_completion_list(_buf: &str, _pos: &Position) -> CompletionList {
+fn get_completion_list(_text: &str, _pos: &Position) -> CompletionList {
     let mut cmplist = CompletionList::default();
 
     match load_completion_resources() {

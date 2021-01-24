@@ -1,0 +1,15 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+// COMMENT = { "%" ~ comment_inner ~ ("\r" | "\n") }
+COMMENT = { !("%!") ~ "%" ~ comment_inner ~ ("\r" | "\n") }
+comment_inner = ${ (!("\r" | "\n") ~ ANY)* }
+
+start_mark = { "%![PARSER-READ-START]\n" }
+till_start = @{ (!start_mark ~ ANY)* ~ start_mark }
+
+end_mark = { "%![PARSER-READ-END]\n" }
+after_end = @{ end_mark ~ (!EOI ~ ANY)* ~ EOI }
+
+program = { till_start ~ expr ~ after_end }
+
+expr = { ASCII_ALPHANUMERIC+ }
