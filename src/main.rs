@@ -1,7 +1,9 @@
 use std::error::Error;
 
 use log::{debug, info};
-use maquette_satysfi_language_server::{Buffers, completion::get_completion_response, parser::{DocumentTree}};
+use maquette_satysfi_language_server::{
+    completion::get_completion_response, parser::DocumentTree, Buffers,
+};
 use pest::Parser;
 use simplelog::*;
 

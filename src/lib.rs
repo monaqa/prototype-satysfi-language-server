@@ -64,7 +64,8 @@ impl Environment {
                         // let-inline ctx \cmd の形
                         let scd = children.next().unwrap();
                         scd.as_str()
-                    }.to_owned()
+                    }
+                    .to_owned()
                 };
                 InlineCmd { name }
             })
@@ -83,7 +84,8 @@ impl Environment {
                         // let-inline ctx \cmd の形
                         let scd = children.next().unwrap();
                         scd.as_str()
-                    }.to_owned()
+                    }
+                    .to_owned()
                 };
                 BlockCmd { name }
             })
@@ -99,7 +101,9 @@ impl Environment {
             })
             .collect_vec();
         Environment {
-            inline_cmds, block_cmds, math_cmds
+            inline_cmds,
+            block_cmds,
+            math_cmds,
         }
     }
 }

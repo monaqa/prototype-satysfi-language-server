@@ -11,9 +11,9 @@ mod satysfi_parser {
 use anyhow::Result;
 use itertools::Itertools;
 use log::debug;
-pub use satysfi_parser::{SatysfiParser, Rule};
 use lsp_types::{Position, Range};
 use pest::{Parser, Span};
+pub use satysfi_parser::{Rule, SatysfiParser};
 
 /// CalculatorParser で用いられる Pair.
 pub type Pair<'i> = pest::iterators::Pair<'i, Rule>;
@@ -61,7 +61,7 @@ pub trait Search<'a> {
 #[derive(Debug)]
 pub struct DocumentTree<'a> {
     /// 各行の Pair。空行は None。
-    pub tree: std::result::Result<Pair<'a>, pest::error::Error<Rule>>
+    pub tree: std::result::Result<Pair<'a>, pest::error::Error<Rule>>,
 }
 
 impl<'a> DocumentTree<'a> {
@@ -71,7 +71,7 @@ impl<'a> DocumentTree<'a> {
             Ok(mut pairs) => Ok(pairs.next().unwrap()),
             Err(e) => Err(e),
         };
-        DocumentTree{tree}
+        DocumentTree { tree }
     }
 
     /// カーソル位置のモードを出力する。不明のときは None を返す。
@@ -82,12 +82,12 @@ impl<'a> DocumentTree<'a> {
         debug!("rules: {:?}", rules);
         for rule in rules {
             match rule {
-                Rule::vertical_mode => { return Mode::Vertical },
-                Rule::horizontal_mode => { return Mode::Horizontal },
-                Rule::math_mode => { return Mode::Math },
-                Rule::headers | Rule::header_stage => {return Mode::Header},
-                Rule::COMMENT => {return Mode::Comment},
-                Rule::string_interior => {return Mode::Literal},
+                Rule::vertical_mode => return Mode::Vertical,
+                Rule::horizontal_mode => return Mode::Horizontal,
+                Rule::math_mode => return Mode::Math,
+                Rule::headers | Rule::header_stage => return Mode::Header,
+                Rule::COMMENT => return Mode::Comment,
+                Rule::string_interior => return Mode::Literal,
                 _ => continue,
             }
         }
@@ -98,15 +98,14 @@ impl<'a> DocumentTree<'a> {
 impl<'a> Search<'a> for DocumentTree<'a> {
     fn pickup(&self, rule: Rule) -> Vec<Pair<'a>> {
         match &self.tree {
-            Ok(pair) => {pair.pickup(rule)},
-            Err(_) => {vec![]},
+            Ok(pair) => pair.pickup(rule),
+            Err(_) => vec![],
         }
     }
 
     fn choose(&self, pos: &Position) -> Option<Pair<'a>> {
         self.tree.as_ref().ok().and_then(|pair| pair.choose(pos))
     }
-
 }
 
 impl<'a> Search<'a> for Pair<'a> {

@@ -11,7 +11,10 @@ use lsp_types::{
 };
 use serde::Deserialize;
 
-use crate::{Environment, parser::{DocumentTree, Mode}};
+use crate::{
+    parser::{DocumentTree, Mode},
+    Environment,
+};
 
 /// デフォルトで用意される補完候補。
 const COMPLETION_RESOUCES: &str = include_str!("resource/completion.toml");
@@ -51,19 +54,29 @@ fn get_completion_list(text: &str, pos: &Position) -> CompletionList {
 }
 
 /// completion_resources を取得する。
-fn load_completion_resources(mode: Mode, env: Environment, pos: &Position) -> Result<Vec<CompletionItem>> {
+fn load_completion_resources(
+    mode: Mode,
+    env: Environment,
+    pos: &Position,
+) -> Result<Vec<CompletionItem>> {
     let items = match mode {
-        Mode::Program => {load_primitive_completion_items()?},
-        Mode::Math => {
-            env.math_cmds.iter().map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone())).collect()
-        },
-        Mode::Horizontal => {
-            env.inline_cmds.iter().map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone())).collect()
-        },
-        Mode::Vertical => {
-            env.block_cmds.iter().map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone())).collect()
-        },
-        _ => {vec![]}
+        Mode::Program => load_primitive_completion_items()?,
+        Mode::Math => env
+            .math_cmds
+            .iter()
+            .map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone()))
+            .collect(),
+        Mode::Horizontal => env
+            .inline_cmds
+            .iter()
+            .map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone()))
+            .collect(),
+        Mode::Vertical => env
+            .block_cmds
+            .iter()
+            .map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone()))
+            .collect(),
+        _ => vec![],
     };
     Ok(items)
 }
