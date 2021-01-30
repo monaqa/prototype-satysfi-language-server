@@ -1,11 +1,7 @@
 use std::error::Error;
 
 use log::{debug, info};
-use maquette_satysfi_language_server::{
-    completion::get_completion_response,
-    parser::{Rule, SatysfiParser},
-    Buffers,
-};
+use maquette_satysfi_language_server::{Buffers, completion::get_completion_response, parser::{DocumentTree}};
 use pest::Parser;
 use simplelog::*;
 
@@ -112,8 +108,8 @@ fn main_loop(
                         if let Some(change) = params.content_changes.get(0) {
                             let text = change.text.clone();
 
-                            let pairs = SatysfiParser::parse(Rule::program, &text);
-                            debug!("{:?}", pairs);
+                            let doctree = DocumentTree::from_document(&text);
+                            debug!("{:?}", doctree);
 
                             buffers.set(uri, text);
                         }
@@ -123,8 +119,8 @@ fn main_loop(
                         let uri = params.text_document.uri;
                         let text = params.text_document.text;
 
-                        let pairs = SatysfiParser::parse(Rule::program, &text);
-                        debug!("{:?}", pairs);
+                        let doctree = DocumentTree::from_document(&text);
+                        debug!("{:?}", doctree);
 
                         buffers.set(uri, text);
                     }
