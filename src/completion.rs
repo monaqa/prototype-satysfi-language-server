@@ -4,12 +4,14 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use anyhow::Result;
-use log::warn;
+use log::{debug, warn};
 use lsp_types::{
     CompletionItem, CompletionList, CompletionParams, CompletionResponse, Documentation,
     InsertTextFormat, MarkupContent, Position,
 };
 use serde::Deserialize;
+
+use crate::{Environment, parser::{DocumentTree, Mode}};
 
 /// デフォルトで用意される補完候補。
 const COMPLETION_RESOUCES: &str = include_str!("resource/completion.toml");
@@ -28,10 +30,17 @@ pub fn get_completion_response(
 }
 
 /// 無条件で返すことのできる補完候補を取得する。
-fn get_completion_list(_text: &str, _pos: &Position) -> CompletionList {
+fn get_completion_list(text: &str, pos: &Position) -> CompletionList {
     let mut cmplist = CompletionList::default();
 
-    match load_completion_resources() {
+    let doctree = DocumentTree::from_document(text);
+    let mode = doctree.mode(pos);
+    debug!("current mode: {:?}", mode);
+
+    let env = Environment::new(&doctree);
+    debug!("current environment: {:?}", env);
+
+    match load_completion_resources(mode, env, pos) {
         Ok(res) => {
             cmplist.items = res;
         }
@@ -42,7 +51,25 @@ fn get_completion_list(_text: &str, _pos: &Position) -> CompletionList {
 }
 
 /// completion_resources を取得する。
-fn load_completion_resources() -> Result<Vec<CompletionItem>> {
+fn load_completion_resources(mode: Mode, env: Environment, pos: &Position) -> Result<Vec<CompletionItem>> {
+    let items = match mode {
+        Mode::Program => {load_primitive_completion_items()?},
+        Mode::Math => {
+            env.math_cmds.iter().map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone())).collect()
+        },
+        Mode::Horizontal => {
+            env.inline_cmds.iter().map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone())).collect()
+        },
+        Mode::Vertical => {
+            env.block_cmds.iter().map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone())).collect()
+        },
+        _ => {vec![]}
+    };
+    Ok(items)
+}
+
+/// completion_resources を取得する。
+fn load_primitive_completion_items() -> Result<Vec<CompletionItem>> {
     let resources: HashMap<String, Vec<MyCompletionItem>> = toml::from_str(COMPLETION_RESOUCES)?;
     let items = resources
         .into_iter()

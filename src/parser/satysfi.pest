@@ -4,7 +4,7 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 COMMENT = { "%" ~ comment_inner ~ ("\r" | "\n") }
 comment_inner = ${ (!("\r" | "\n") ~ ANY)* }
 
-program = _{ SOI ~ header_stage? ~ headers ~ (preamble ~ "in")? ~ expr ~ EOI }
+program = { SOI ~ header_stage? ~ headers ~ (preamble ~ "in")? ~ expr ~ EOI }
 
 // header {{{
 
@@ -361,7 +361,7 @@ string_interior = { (!PEEK ~ ANY)* }
 
 // horizontal {{{
 
-horizontal_mode = _{
+horizontal_mode = {
     horizontal_list
     | horizontal_bullet_list
     | horizontal_single
@@ -379,10 +379,15 @@ horizontal_token = ${
     | "${" ~ math_mode ~ "}"
     | "\\" ~ horizontal_special_char
     | regular_text
+    | dummy_inline_cmd_incomplete
 }
 regular_text = {(!horizontal_special_char ~ ANY)+}
 horizontal_special_char = @{
     "@" | "`" | "\\" | "{" | "}" | "%" | "|" | "*" | "$" | "#" | ";"
+}
+// inline_cmd の入力中。
+dummy_inline_cmd_incomplete = @{
+    "\\" ~ (var_ptn | modvar)?
 }
 
 inline_cmd_name = @{ "\\" ~ (var_ptn | modvar) }
@@ -410,7 +415,11 @@ horizontal_text_embedding = ${ "#" ~ (var_ptn | modvar) ~ ";" }
 // vertical {{{
 
 vertical_mode = { vertical_element* }
-vertical_element = { block_cmd | block_text_embedding }
+vertical_element = {
+    block_cmd
+    | block_text_embedding
+    | dummy_block_cmd_incomplete
+}
 block_cmd_name = @{ "+" ~ (var_ptn | modvar) }
 block_cmd = {
     block_cmd_name
@@ -419,6 +428,11 @@ block_cmd = {
     ~ (";" | (cmd_text_arg)+)
 }
 block_text_embedding = @{ "#" ~ (var_ptn | modvar) ~ ";" }
+
+// inline_cmd の入力中。
+dummy_block_cmd_incomplete = @{
+    "+" ~ (var_ptn | modvar)?
+}
 
 // }}}
 
@@ -445,6 +459,7 @@ math_unary = ${
     | "\\" ~ math_special_char
     | math_symbol
     | math_cmd
+    | dummy_math_cmd_incomplete
 }
 math_cmd = {
     math_cmd_name
@@ -481,5 +496,10 @@ math_cmd_record_arg = {
     | "!(" ~ "|" ~ record_inner ~ "|" ~ ")"
 }
 math_cmd_expr_option = { "?:" ~ math_cmd_expr_arg }
+
+// math_cmd の入力中。
+dummy_math_cmd_incomplete = @{
+    "\\" ~ (var_ptn | modvar)?
+}
 
 // }}}

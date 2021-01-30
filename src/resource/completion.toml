@@ -26,12 +26,11 @@ Declare new block-cmd.
 [[primitive]]
 label = "let-math"
 detail = "math-cmd declaration"
-insert_text = 'let-math \${1:cmd-name} ${2:args} = $0'
+insert_text = 'let-math \\${1:cmd-name} ${2:args} = $0'
 insert_text_format = "snippet"
 documentation = '''
 Declare new math-cmd.
 '''
-
 
 [[primitive]]
 label = "inline-fil"
@@ -116,6 +115,12 @@ Display a message to console.
 
 [[primitive]]
 label = "draw-text"
+detail = "(length * length) -> inline-boxes -> graphics"
+insert_text = "draw-text ${1:(x, y)} ${2:ib}"
+insert_text_format = "snippet"
+documentation = '''
+Draw a text (inline-boxes) at the specified point.
+'''
 
 [[primitive]]
 label = "embed-block-bottom"
@@ -125,6 +130,9 @@ label = "embed-block-breakable"
 
 [[primitive]]
 label = "embed-block-top"
+detail = "context -> length -> (context -> block-boxes) -> inline-boxes"
+insert_text = "embed-block-top ${1:ctx} ${2:wid} ${3:(fun ctx -> read-block ctx bt)}"
+insert_text_format = "snippet"
 
 [[primitive]]
 label = "embed-math"
@@ -146,6 +154,12 @@ label = "extract-string"
 
 [[primitive]]
 label = "fill"
+detail = "color -> path -> graphics"
+insert_text = "fill ${1:Color.black} ${2:path}"
+insert_text_format = "snippet"
+documentation = '''
+Fill the path with the specified color.
+'''
 
 [[primitive]]
 label = "float"

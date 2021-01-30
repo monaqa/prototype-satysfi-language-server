@@ -109,7 +109,9 @@ fn main_loop(
                             let text = change.text.clone();
 
                             let doctree = DocumentTree::from_document(&text);
-                            debug!("{:?}", doctree);
+                            if let Err(e) = doctree.tree {
+                                debug!("parse error: {:?}", e);
+                            }
 
                             buffers.set(uri, text);
                         }
@@ -120,7 +122,6 @@ fn main_loop(
                         let text = params.text_document.text;
 
                         let doctree = DocumentTree::from_document(&text);
-                        debug!("{:?}", doctree);
 
                         buffers.set(uri, text);
                     }

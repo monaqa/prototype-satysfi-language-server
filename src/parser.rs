@@ -9,6 +9,8 @@ mod satysfi_parser {
 }
 
 use anyhow::Result;
+use itertools::Itertools;
+use log::debug;
 pub use satysfi_parser::{SatysfiParser, Rule};
 use lsp_types::{Position, Range};
 use pest::{Parser, Span};
@@ -16,14 +18,21 @@ use pest::{Parser, Span};
 /// CalculatorParser で用いられる Pair.
 pub type Pair<'i> = pest::iterators::Pair<'i, Rule>;
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
+    /// プログラムモード。
     Program,
+    /// 垂直モード。
     Vertical,
+    /// 水平モード。
     Horizontal,
+    /// 数式モード。
     Math,
+    /// ヘッダ。
     Header,
-    Active,
+    /// 文字列リテラル。
     Literal,
+    /// コメント。
     Comment,
 }
 
@@ -52,7 +61,7 @@ pub trait Search<'a> {
 #[derive(Debug)]
 pub struct DocumentTree<'a> {
     /// 各行の Pair。空行は None。
-    tree: std::result::Result<Pair<'a>, pest::error::Error<Rule>>
+    pub tree: std::result::Result<Pair<'a>, pest::error::Error<Rule>>
 }
 
 impl<'a> DocumentTree<'a> {
@@ -66,11 +75,23 @@ impl<'a> DocumentTree<'a> {
     }
 
     /// カーソル位置のモードを出力する。不明のときは None を返す。
-    pub fn mode(&self, pos: &Position) -> Option<Mode> {
-        let rule = self.dig(pos).first()?.as_rule();
-        match rule {
-            _ => None,
+    pub fn mode(&self, pos: &Position) -> Mode {
+        let pairs = self.dig(pos);
+        // let rules = pairs.iter().map(|p| p.as_rule());
+        let rules = pairs.iter().map(|p| p.as_rule()).collect_vec();
+        debug!("rules: {:?}", rules);
+        for rule in rules {
+            match rule {
+                Rule::vertical_mode => { return Mode::Vertical },
+                Rule::horizontal_mode => { return Mode::Horizontal },
+                Rule::math_mode => { return Mode::Math },
+                Rule::headers | Rule::header_stage => {return Mode::Header},
+                Rule::COMMENT => {return Mode::Comment},
+                Rule::string_interior => {return Mode::Literal},
+                _ => continue,
+            }
         }
+        Mode::Program
     }
 }
 
@@ -139,10 +160,12 @@ pub fn span_to_range(s: &Span<'_>) -> Range {
     Range { start, end }
 }
 
+/// 与えられた範囲と pos の関係を返す。
+/// TODO: range と range の関係に一般化する。
 fn relation(range: &Range, point: &Position) -> Relation {
     if point < &range.start {
         Relation::Left
-    } else if point >= &range.end {
+    } else if point > &range.end {
         Relation::Right
     } else {
         Relation::In
