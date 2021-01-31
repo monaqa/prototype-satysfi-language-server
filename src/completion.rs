@@ -11,7 +11,7 @@ use lsp_types::{
 };
 use serde::Deserialize;
 
-use crate::{Environment, parser::{BufferCst, DocumentTree, Mode}};
+use crate::{BufferCst, Environment, parser::{DocumentTree, Mode}};
 
 /// デフォルトで用意される補完候補。
 const COMPLETION_RESOUCES: &str = include_str!("resource/completion.toml");

@@ -1,12 +1,7 @@
 use std::{collections::HashMap, error::Error};
 
 use log::{debug, info};
-use maquette_satysfi_language_server::{
-    completion::get_completion_response,
-    parser::{BufferCst, DocumentTree},
-    Buffers,
-};
-use pest::Parser;
+use maquette_satysfi_language_server::{BufferCst, completion::get_completion_response};
 use simplelog::*;
 
 use lsp_types::{

@@ -11,11 +11,87 @@ extern crate pest_derive;
 pub mod completion;
 pub mod parser;
 
+use anyhow::Result;
+use pest::{Parser, Span};
+
 use std::collections::HashMap;
 
 use itertools::Itertools;
 use lsp_types::{Range, Url};
-use parser::{DocumentTree, Rule, Search};
+use parser::{DocumentTree, Pair, Rule, SatysfiParser, Search};
+
+/// Cst を格納した Buffer.
+pub struct BufferCst {
+    /// バッファの文字列本体。
+    pub buffer: String,
+    /// バッファの文法構造。
+    cst: Cst,
+}
+
+impl BufferCst {
+    /// 与えられた文字列を消費し、新たな BufferCst を作成する。
+    pub fn parse_into(buffer: String) -> Result<Self> {
+        let mut pairs = SatysfiParser::parse(Rule::program, &buffer)?;
+        let pair = pairs.next().unwrap();
+        let cst = Cst::from(pair);
+        Ok(Self {buffer, cst})
+    }
+}
+
+/// 参照をなくして BufferCst が自己参照構造体になることを回避した
+/// pest::iterators::Pair 的なもの。
+pub struct Cst {
+    /// そのルールが何であるか。
+    rule: Rule,
+    /// Cst が表す範囲。
+    range: CstRange,
+    /// 子 Cst。
+    inner: Vec<Cst>,
+}
+
+impl<'a> From<Pair<'a>> for Cst {
+    fn from(pair: Pair<'a>) -> Self {
+        let rule = pair.as_rule();
+        let range = CstRange::from(pair.as_span());
+        let inner = pair.into_inner().map(Cst::from).collect_vec();
+        Self {rule, range, inner}
+    }
+}
+
+pub struct CstRange {
+    /// 始まりの位置。
+    start: CstPosition,
+    /// 終わりの位置。
+    end: CstPosition,
+}
+
+impl<'a> From<Span<'a>> for CstRange {
+    fn from(span: Span<'a>) -> Self {
+        let start = CstPosition::from(span.start_pos());
+        let end = CstPosition::from(span.end_pos());
+        Self { start, end }
+    }
+}
+
+pub struct CstPosition {
+    /// スタートから何バイト目にあるか。
+    byte: usize,
+    /// 何行目にあるか。
+    line: u32,
+    /// その行の何文字目にあるか。
+    character: u32,
+}
+
+impl<'a> From<pest::Position<'a>> for CstPosition {
+    fn from(pos: pest::Position<'a>) -> Self {
+        let byte = pos.pos();
+        let (line, character) = pos.line_col();
+        let line = (line - 1) as u32;
+        let character = (character - 1) as u32;
+        Self {byte, line, character}
+    }
+}
+
 
 /// バッファを格納する map.
 #[derive(Debug, Default)]
