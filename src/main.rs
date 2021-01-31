@@ -1,15 +1,10 @@
 use std::{collections::HashMap, error::Error};
 
 use log::{debug, error, info};
-use maquette_satysfi_language_server::{Buffer, BufferCst, completion::get_completion_response};
+use maquette_satysfi_language_server::{Buffer, BufferCst, completion::get_completion_response, definition::get_definition_response};
 use simplelog::*;
 
-use lsp_types::{
-    notification::{DidChangeTextDocument, DidOpenTextDocument},
-    request::Completion,
-    CompletionOptions, InitializeParams, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind, Url,
-};
+use lsp_types::{CompletionOptions, InitializeParams, OneOf, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, Url, notification::{DidChangeTextDocument, DidOpenTextDocument}, request::{Completion, GotoDefinition}};
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
 
@@ -43,7 +38,7 @@ fn sub() -> Result<(), Box<dyn Error + Sync + Send>> {
     // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
     let server_capabilities = {
         let mut server_capabilities = ServerCapabilities::default();
-        // server_capabilities.definition_provider = Some(OneOf::Left(true));
+        server_capabilities.definition_provider = Some(OneOf::Left(true));
         server_capabilities.text_document_sync =
             Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::Full));
         let mut compopt = CompletionOptions::default();
@@ -100,6 +95,27 @@ fn main_loop(
                             connection.sender.send(Message::Response(resp))?;
                             continue;
                         }
+                    }
+                    "textDocument/definition" => {
+                        let (id, params) = cast_req::<GotoDefinition>(req).unwrap();
+
+                        let uri = &params.text_document_position_params.text_document.uri;
+                        let resp = buffers
+                            .get(uri)
+                            .and_then(|buf| get_definition_response(&buf, params))
+                            ;
+
+                        if let Some(resp) = resp {
+                            let result = serde_json::to_value(&resp).unwrap();
+                            let resp = Response {
+                                id,
+                                result: Some(result),
+                                error: None,
+                            };
+                            connection.sender.send(Message::Response(resp))?;
+                            continue;
+                        }
+
                     }
                     _ => unreachable!(),
                 }

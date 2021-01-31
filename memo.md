@@ -14,8 +14,8 @@
 - [ ] definition: 変数の定義ジャンプ
 - [ ] diagnostics: 文法エラー
 - [ ] declaration: module の signature へジャンプ
-- [ ] format
-- [ ] rename: 変数やコマンド名の変更 **バッファ内容変更有**
+- [ ] format （**バッファ内容変更有**）
+- [ ] rename: 変数やコマンド名の変更 （**バッファ内容変更有**）
 - [ ] symbol: 定義済みコマンドの一覧を表示
 - [ ] symbol: 定義済み変数の一覧を表示
 - [ ] reference: 変数の reference 情報

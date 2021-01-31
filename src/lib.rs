@@ -8,6 +8,7 @@
 extern crate pest_derive;
 
 pub mod completion;
+pub mod definition;
 pub mod parser;
 
 use anyhow::{Error, Result};
@@ -221,6 +222,15 @@ impl<'a> From<Span<'a>> for CstRange {
     }
 }
 
+impl Into<lsp_types::Range> for CstRange {
+    fn into(self) -> lsp_types::Range {
+        lsp_types::Range {
+            start: self.start.into(),
+            end: self.end.into(),
+        }
+    }
+}
+
 impl CstRange {
     fn includes(&self, pos: &Position) -> bool {
         let start: Position = self.start.clone().into();
@@ -302,20 +312,20 @@ impl Environment {
                     .pickup(Rule::let_inline_stmt)
                     .into_iter()
                     .map(|cst| {
-                        let name = {
-                            let mut children = cst.inner.iter();
-                            let fst = children.next().unwrap();
-                            if fst.rule == Rule::inline_cmd_name {
-                                // let-inline \cmd の形
-                                text.as_str(fst)
-                            } else {
-                                // let-inline ctx \cmd の形
-                                let scd = children.next().unwrap();
-                                text.as_str(scd)
-                            }
+                        let mut children = cst.inner.iter();
+                        let fst = children.next().unwrap();
+                        if fst.rule == Rule::inline_cmd_name {
+                            // let-inline \cmd の形
+                            let name = text.as_str(fst).to_owned();
+                            let def_range = fst.range.clone().into();
+                            InlineCmd {name, def_range}
+                        } else {
+                            // let-inline ctx \cmd の形
+                            let scd = children.next().unwrap();
+                            let name = text.as_str(scd).to_owned();
+                            let def_range = scd.range.clone().into();
+                            InlineCmd {name, def_range}
                         }
-                        .to_owned();
-                        InlineCmd { name }
                     })
                     .collect_vec();
 
@@ -323,20 +333,20 @@ impl Environment {
                     .pickup(Rule::let_block_stmt)
                     .into_iter()
                     .map(|cst| {
-                        let name = {
                             let mut children = cst.inner.iter();
                             let fst = children.next().unwrap();
                             if fst.rule == Rule::block_cmd_name {
                                 // let-block +cmd の形
-                                text.as_str(fst)
+                            let name = text.as_str(fst).to_owned();
+                            let def_range = fst.range.clone().into();
+                            BlockCmd {name, def_range}
                             } else {
                                 // let-block ctx +cmd の形
                                 let scd = children.next().unwrap();
-                                text.as_str(scd)
+                                let name = text.as_str(scd).to_owned();
+                                let def_range = scd.range.clone().into();
+                                BlockCmd {name, def_range}
                             }
-                        }
-                        .to_owned();
-                        BlockCmd { name }
                     })
                     .collect_vec();
 
@@ -344,13 +354,11 @@ impl Environment {
                     .pickup(Rule::let_math_stmt)
                     .into_iter()
                     .map(|cst| {
-                        let name = {
-                            let mut children = cst.inner.iter();
-                            let fst = children.next().unwrap();
-                            text.as_str(fst)
-                        }
-                        .to_owned();
-                        MathCmd { name }
+                        let mut children = cst.inner.iter();
+                        let fst = children.next().unwrap();
+                        let name = text.as_str(fst).to_owned();
+                        let def_range = fst.range.clone().into();
+                        MathCmd { name, def_range }
                     })
                     .collect_vec();
 
@@ -366,7 +374,8 @@ impl Environment {
 pub struct InlineCmd {
     /// コマンド名
     name: String,
-    // def_range: Range,
+    /// 定義の場所
+    def_range: Range,
 }
 
 /// ブロックコマンド。
@@ -374,7 +383,8 @@ pub struct InlineCmd {
 pub struct BlockCmd {
     /// コマンド名
     name: String,
-    // def_range: Range,
+    /// 定義の場所
+    def_range: Range,
 }
 
 /// 数式コマンド。
@@ -382,5 +392,6 @@ pub struct BlockCmd {
 pub struct MathCmd {
     /// コマンド名
     name: String,
-    // def_range: Range,
+    /// 定義の場所
+    def_range: Range,
 }

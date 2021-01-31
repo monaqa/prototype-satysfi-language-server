@@ -477,7 +477,7 @@ math_symbol = {
     ("-" | "+" | "*" | "/" | ":" | "=" | "<"
      | ">" | "~" | "'" | "." | "," | "?" | "`")+
 }
-math_cmd_name = _{ inline_cmd_name }
+math_cmd_name = @{ "\\" ~ (var_ptn | modvar) }
 math_cmd_expr_arg = !{
     "{" ~ math_mode ~ "}"
     | "!{" ~ horizontal_mode ~ "}"
