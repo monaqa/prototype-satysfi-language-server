@@ -8,6 +8,8 @@ mod satysfi_parser {
     pub struct SatysfiParser;
 }
 
+pub mod relation;
+
 use anyhow::Result;
 use itertools::Itertools;
 use log::debug;
