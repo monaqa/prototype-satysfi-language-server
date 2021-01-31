@@ -1,7 +1,7 @@
 use std::{collections::HashMap, error::Error};
 
-use log::{debug, info};
-use maquette_satysfi_language_server::{BufferCst, completion::get_completion_response};
+use log::{debug, error, info};
+use maquette_satysfi_language_server::{Buffer, BufferCst, completion::get_completion_response};
 use simplelog::*;
 
 use lsp_types::{
@@ -13,7 +13,7 @@ use lsp_types::{
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
 
-fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
+fn main() {
     let log_conf = ConfigBuilder::new()
         .set_time_to_local(true)
         .set_location_level(LevelFilter::Info)
@@ -25,6 +25,14 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     )
     .unwrap();
 
+    let result = sub();
+    if let Err(e) = result {
+        error!("{}", e);
+        std::process::exit(1);
+    }
+}
+
+fn sub() -> Result<(), Box<dyn Error + Sync + Send>> {
     // Note that  we must have our logging only write out to stderr.
     info!("starting generic LSP server");
 
@@ -110,21 +118,8 @@ fn main_loop(
                         if let Some(change) = params.content_changes.get(0) {
                             let text = change.text.clone();
 
-                            // let doctree = DocumentTree::from_document(&text);
-                            // if let Err(e) = doctree.tree {
-                            //     debug!("parse error: {:?}", e);
-                            // }
-
-                            // buffers.set(uri, text);
-                            let bufcst = BufferCst::parse_into(text);
-                            match bufcst {
-                                Ok(bufcst) => {
-                                    buffer_csts.insert(uri, bufcst);
-                                }
-                                Err(e) => {
-                                    debug!("parse error: {:?}", e);
-                                }
-                            }
+                            let buf = Buffer::new(text);
+                            debug!("buffer cst: {}", buf.text);
                         }
                     }
                     "textDocument/didOpen" => {
@@ -132,15 +127,9 @@ fn main_loop(
                         let uri = params.text_document.uri;
                         let text = params.text_document.text;
 
-                        let bufcst = BufferCst::parse_into(text);
-                        match bufcst {
-                            Ok(bufcst) => {
-                                buffer_csts.insert(uri, bufcst);
-                            }
-                            Err(e) => {
-                                debug!("parse error: {:?}", e);
-                            }
-                        }
+                        let buf = Buffer::new(text);
+                        debug!("buffer cst: {}", buf.text);
+
                     }
                     _ => (),
                 }

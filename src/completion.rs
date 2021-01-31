@@ -33,19 +33,19 @@ pub fn get_completion_response(
 fn get_completion_list(text: &str, pos: &Position) -> CompletionList {
     let mut cmplist = CompletionList::default();
 
-    let doctree = DocumentTree::from_document(text);
-    let mode = doctree.mode(pos);
-    debug!("current mode: {:?}", mode);
+    // let doctree = DocumentTree::from_document(text);
+    // let mode = doctree.mode(pos);
+    // debug!("current mode: {:?}", mode);
+    // 
+    // let env = Environment::new(&doctree);
+    // debug!("current environment: {:?}", env);
 
-    let env = Environment::new(&doctree);
-    debug!("current environment: {:?}", env);
-
-    match load_completion_resources(mode, env, pos) {
-        Ok(res) => {
-            cmplist.items = res;
-        }
-        Err(err) => warn!("failed to load completion resources: {}", err),
-    }
+    // match load_completion_resources(mode, env, pos) {
+    //     Ok(res) => {
+    //         cmplist.items = res;
+    //     }
+    //     Err(err) => warn!("failed to load completion resources: {}", err),
+    // }
 
     cmplist
 }
