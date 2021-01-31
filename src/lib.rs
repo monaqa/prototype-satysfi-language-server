@@ -3,7 +3,6 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
-#![warn(clippy::missing_docs_in_private_items)]
 
 #[macro_use]
 extern crate pest_derive;
@@ -12,17 +11,18 @@ pub mod completion;
 pub mod parser;
 
 use anyhow::{Error, Result};
+use log::debug;
 use pest::{Parser, Span};
 
 use std::collections::HashMap;
 
 use itertools::Itertools;
 use lsp_types::{Position, Range, Url};
-use parser::{DocumentTree, Pair, Rule, SatysfiParser};
+use parser::{DocumentTree, Mode, Pair, Rule, SatysfiParser};
 
 #[derive(Debug)]
 pub struct Buffer {
-    pub text: BufferCst,
+    pub buf_cst: BufferCst,
     pub error: Vec<Error>,
     pub env: Environment,
 }
@@ -43,7 +43,7 @@ impl Buffer {
         let error = e.into_iter().collect_vec();
         let env = Environment::new(&text);
 
-        Self { text, error, env }
+        Self { buf_cst: text, error, env }
     }
 }
 
@@ -80,7 +80,9 @@ impl std::fmt::Display for BufferCst {
                 write!(f, "{}", text)
             },
             None => {
-                write!(f, r#"No CST. raw str: """\n{}\n""""#, self.buffer)
+                write!(f, r#"No CST. raw str: """
+{}
+""""#, self.buffer)
             },
         }
     }
@@ -178,6 +180,24 @@ impl Cst {
         let start = self.range.start.byte;
         let end = self.range.end.byte;
         std::str::from_utf8(&text.as_bytes()[start..end]).unwrap()
+    }
+
+    fn mode(&self, pos: &Position) -> Mode {
+        let csts = self.dig(pos);
+        let rules = csts.iter().map(|cst| cst.rule);
+
+        for rule in rules {
+            match rule {
+                Rule::vertical_mode => return Mode::Vertical,
+                Rule::horizontal_mode => return Mode::Horizontal,
+                Rule::math_mode => return Mode::Math,
+                Rule::headers | Rule::header_stage => return Mode::Header,
+                Rule::COMMENT => return Mode::Comment,
+                Rule::string_interior => return Mode::Literal,
+                _ => continue,
+            }
+        }
+        Mode::Program
     }
 }
 
@@ -303,10 +323,10 @@ impl Environment {
                             let mut children = cst.inner.iter();
                             let fst = children.next().unwrap();
                             if fst.rule == Rule::block_cmd_name {
-                                // let-block \cmd の形
+                                // let-block +cmd の形
                                 text.as_str(fst)
                             } else {
-                                // let-block ctx \cmd の形
+                                // let-block ctx +cmd の形
                                 let scd = children.next().unwrap();
                                 text.as_str(scd)
                             }
@@ -323,14 +343,7 @@ impl Environment {
                         let name = {
                             let mut children = cst.inner.iter();
                             let fst = children.next().unwrap();
-                            if fst.rule == Rule::math_cmd_name {
-                                // let-math \cmd の形
-                                text.as_str(fst)
-                            } else {
-                                // let-math ctx \cmd の形
-                                let scd = children.next().unwrap();
-                                text.as_str(scd)
-                            }
+                            text.as_str(fst)
                         }
                         .to_owned();
                         MathCmd { name }

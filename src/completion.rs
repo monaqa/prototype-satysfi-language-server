@@ -11,41 +11,40 @@ use lsp_types::{
 };
 use serde::Deserialize;
 
-use crate::{BufferCst, Environment, parser::{DocumentTree, Mode}};
+use crate::{Buffer, Environment, parser::Mode};
 
 /// デフォルトで用意される補完候補。
 const COMPLETION_RESOUCES: &str = include_str!("resource/completion.toml");
 
 /// 補完候補を返す。
 pub fn get_completion_response(
-    buf: &BufferCst,
+    buf: &Buffer,
     params: CompletionParams,
 ) -> Option<CompletionResponse> {
-    let text = &buf.buffer;
-
     let pos = params.text_document_position.position;
 
-    let completion_list = get_completion_list(text, &pos);
+    let completion_list = get_completion_list(buf, &pos);
     Some(CompletionResponse::List(completion_list))
 }
 
 /// 無条件で返すことのできる補完候補を取得する。
-fn get_completion_list(text: &str, pos: &Position) -> CompletionList {
+fn get_completion_list(buf: &Buffer, pos: &Position) -> CompletionList {
     let mut cmplist = CompletionList::default();
 
-    // let doctree = DocumentTree::from_document(text);
-    // let mode = doctree.mode(pos);
-    // debug!("current mode: {:?}", mode);
-    // 
-    // let env = Environment::new(&doctree);
-    // debug!("current environment: {:?}", env);
+    if buf.buf_cst.cst.is_none() {
+        return cmplist
+    }
 
-    // match load_completion_resources(mode, env, pos) {
-    //     Ok(res) => {
-    //         cmplist.items = res;
-    //     }
-    //     Err(err) => warn!("failed to load completion resources: {}", err),
-    // }
+    let mode = buf.buf_cst.cst.as_ref().unwrap().mode(pos);
+    debug!("current mode: {:?}", mode);
+    let env = &buf.env;
+
+    match load_completion_resources(mode, env, pos) {
+        Ok(res) => {
+            cmplist.items = res;
+        }
+        Err(err) => warn!("failed to load completion resources: {}", err),
+    }
 
     cmplist
 }
@@ -53,8 +52,8 @@ fn get_completion_list(text: &str, pos: &Position) -> CompletionList {
 /// completion_resources を取得する。
 fn load_completion_resources(
     mode: Mode,
-    env: Environment,
-    pos: &Position,
+    env: &Environment,
+    _pos: &Position,
 ) -> Result<Vec<CompletionItem>> {
     let items = match mode {
         Mode::Program => load_primitive_completion_items()?,

@@ -67,7 +67,7 @@ fn main_loop(
     info!("starting example main loop");
 
     // let mut buffers = Buffers::default();
-    let mut buffer_csts: HashMap<Url, BufferCst> = HashMap::new();
+    let mut buffers: HashMap<Url, Buffer> = HashMap::new();
 
     for msg in &connection.receiver {
         info!("got msg: {:?}", msg);
@@ -84,7 +84,7 @@ fn main_loop(
 
                         let uri = &params.text_document_position.text_document.uri;
                         // let text = buffers.get(&uri);
-                        let resp = buffer_csts
+                        let resp = buffers
                             .get(uri)
                             .and_then(|buf| get_completion_response(&buf, params));
 
@@ -119,7 +119,12 @@ fn main_loop(
                             let text = change.text.clone();
 
                             let buf = Buffer::new(text);
-                            debug!("buffer cst: {}", buf.text);
+                            debug!("buffer cst: {}", &buf.buf_cst);
+                            debug!("buffer env: {:?}", buf.env);
+                            if let Some(e) = buf.error.get(0) {
+                                debug!("error: {:?}", e)
+                            }
+                            buffers.insert(uri, buf);
                         }
                     }
                     "textDocument/didOpen" => {
@@ -128,8 +133,12 @@ fn main_loop(
                         let text = params.text_document.text;
 
                         let buf = Buffer::new(text);
-                        debug!("buffer cst: {}", buf.text);
-
+                        debug!("buffer cst: {}", buf.buf_cst);
+                        debug!("buffer env: {:?}", buf.env);
+                        if let Some(e) = buf.error.get(0) {
+                            debug!("error: {:?}", e)
+                        }
+                        buffers.insert(uri, buf);
                     }
                     _ => (),
                 }

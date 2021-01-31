@@ -302,7 +302,7 @@ reserved_word = {
 
 block_text = { "'<" ~ vertical_mode ~ ">" }
 horizontal_text = { "{" ~ horizontal_mode ~ "}" }
-math_text = {"${" ~ math_mode ~ "}"}
+math_text = !{"${" ~ math_mode ~ "}"}
 
 dyadic_expr = {
     (unary_operator_expr | variant_constructor | application | unary)
@@ -376,7 +376,7 @@ horizontal_token = ${
     string_const
     | inline_cmd
     | horizontal_text_embedding
-    | "${" ~ math_mode ~ "}"
+    | math_text
     | "\\" ~ horizontal_special_char
     | regular_text
     | dummy_inline_cmd_incomplete
