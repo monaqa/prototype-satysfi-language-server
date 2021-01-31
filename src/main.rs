@@ -46,7 +46,9 @@ fn sub() -> Result<(), Box<dyn Error + Sync + Send>> {
         // server_capabilities.definition_provider = Some(OneOf::Left(true));
         server_capabilities.text_document_sync =
             Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::Full));
-        server_capabilities.completion_provider = Some(CompletionOptions::default());
+        let mut compopt = CompletionOptions::default();
+        compopt.trigger_characters = Some( vec!["\\".to_owned(), "+".to_owned() , "#".to_owned()]);
+        server_capabilities.completion_provider = Some(compopt);
         serde_json::to_value(&server_capabilities).unwrap()
     };
     info!("server_capabilities: {:?}", server_capabilities);

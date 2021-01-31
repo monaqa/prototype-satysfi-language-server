@@ -11,7 +11,7 @@ use lsp_types::{
 };
 use serde::Deserialize;
 
-use crate::{Buffer, Environment, parser::Mode};
+use crate::{parser::Mode, Buffer, Environment};
 
 /// デフォルトで用意される補完候補。
 const COMPLETION_RESOUCES: &str = include_str!("resource/completion.toml");
@@ -22,24 +22,25 @@ pub fn get_completion_response(
     params: CompletionParams,
 ) -> Option<CompletionResponse> {
     let pos = params.text_document_position.position;
+    let trigger_char = &params.context.and_then(|ctx| ctx.trigger_character);
 
-    let completion_list = get_completion_list(buf, &pos);
+    let completion_list = get_completion_list(buf, &pos, trigger_char);
     Some(CompletionResponse::List(completion_list))
 }
 
-/// 無条件で返すことのできる補完候補を取得する。
-fn get_completion_list(buf: &Buffer, pos: &Position) -> CompletionList {
+/// completion_resources を取得する。
+fn get_completion_list(buf: &Buffer, pos: &Position, trigger: &Option<String>) -> CompletionList {
     let mut cmplist = CompletionList::default();
 
     if buf.buf_cst.cst.is_none() {
-        return cmplist
+        return cmplist;
     }
 
     let mode = buf.buf_cst.cst.as_ref().unwrap().mode(pos);
     debug!("current mode: {:?}", mode);
     let env = &buf.env;
 
-    match load_completion_resources(mode, env, pos) {
+    match load_completion_resources(mode, env, pos, trigger) {
         Ok(res) => {
             cmplist.items = res;
         }
@@ -54,30 +55,76 @@ fn load_completion_resources(
     mode: Mode,
     env: &Environment,
     _pos: &Position,
+    trigger: &Option<String>,
 ) -> Result<Vec<CompletionItem>> {
     let items = match mode {
-        Mode::Program => load_primitive_completion_items()?,
-        Mode::Math => env
-            .math_cmds
-            .iter()
-            .map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone()))
-            .collect(),
-        Mode::Horizontal => env
-            .inline_cmds
-            .iter()
-            .map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone()))
-            .collect(),
-        Mode::Vertical => env
-            .block_cmds
-            .iter()
-            .map(|s| CompletionItem::new_simple(s.name.clone(), s.name.clone()))
-            .collect(),
+        Mode::Program => {
+            if let Some(tr) = trigger {
+                match tr.as_str() {
+                    "#" => vec![], // TODO: 本当は出すべき補完候補がある
+                    "+" => vec![],
+                    "\\" => vec![],
+                    _ => vec![], // unreachable だが致命的ではないのでpanicしない
+                }
+            } else {
+                load_primitive_completion_items()?
+            }
+        }
+
+        Mode::Math => {
+            let show_cand = { trigger == &Some("\\".to_owned()) };
+            if show_cand {
+                env.math_cmds
+                    .iter()
+                    .map(|s| {
+                        let mut item = CompletionItem::new_simple(s.name.clone(), s.name.clone());
+                        item.insert_text = Some(s.name.clone()[1..].to_owned());
+                        item
+                    })
+                    .collect()
+            } else {
+                vec![]
+            }
+        }
+
+        Mode::Horizontal => {
+            let show_cand = { trigger == &Some("\\".to_owned()) };
+            if show_cand {
+                env.inline_cmds
+                    .iter()
+                    .map(|s| {
+                        let mut item = CompletionItem::new_simple(s.name.clone(), s.name.clone());
+                        item.insert_text = Some(s.name.clone()[1..].to_owned());
+                        item
+                    })
+                    .collect()
+            } else {
+                vec![]
+            }
+        }
+
+        Mode::Vertical => {
+            let show_cand = { trigger == &Some("+".to_owned()) };
+            if show_cand {
+                env.block_cmds
+                    .iter()
+                    .map(|s| {
+                        let mut item = CompletionItem::new_simple(s.name.clone(), s.name.clone());
+                        item.insert_text = Some(s.name.clone()[1..].to_owned());
+                        item
+                    })
+                    .collect()
+            } else {
+                vec![]
+            }
+        }
+
         _ => vec![],
     };
     Ok(items)
 }
 
-/// completion_resources を取得する。
+/// プログラムモードのときに返すことのできる補完候補を取得する。
 fn load_primitive_completion_items() -> Result<Vec<CompletionItem>> {
     let resources: HashMap<String, Vec<MyCompletionItem>> = toml::from_str(COMPLETION_RESOUCES)?;
     let items = resources
