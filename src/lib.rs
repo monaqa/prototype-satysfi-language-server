@@ -18,7 +18,7 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use lsp_types::{Position, Range, Url};
-use parser::{DocumentTree, Mode, Pair, Rule, SatysfiParser};
+use parser::{Mode, Pair, Rule, SatysfiParser};
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -194,6 +194,10 @@ impl Cst {
                 Rule::headers | Rule::header_stage => return Mode::Header,
                 Rule::COMMENT => return Mode::Comment,
                 Rule::string_interior => return Mode::Literal,
+                Rule::cmd_expr_arg
+                | Rule::cmd_expr_option
+                | Rule::math_cmd_expr_arg
+                | Rule::math_cmd_expr_option => return Mode::Program,
                 _ => continue,
             }
         }
