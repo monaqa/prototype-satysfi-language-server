@@ -1,8 +1,10 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
 use log::{debug, info};
 use maquette_satysfi_language_server::{
-    completion::get_completion_response, parser::DocumentTree, Buffers,
+    completion::get_completion_response,
+    parser::{BufferCst, DocumentTree},
+    Buffers,
 };
 use pest::Parser;
 use simplelog::*;
@@ -11,7 +13,7 @@ use lsp_types::{
     notification::{DidChangeTextDocument, DidOpenTextDocument},
     request::Completion,
     CompletionOptions, InitializeParams, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind,
+    TextDocumentSyncKind, Url,
 };
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
@@ -61,7 +63,8 @@ fn main_loop(
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
     info!("starting example main loop");
 
-    let mut buffers = Buffers::default();
+    // let mut buffers = Buffers::default();
+    let mut buffer_csts: HashMap<Url, BufferCst> = HashMap::new();
 
     for msg in &connection.receiver {
         info!("got msg: {:?}", msg);
@@ -76,9 +79,11 @@ fn main_loop(
                     "textDocument/completion" => {
                         let (id, params) = cast_req::<Completion>(req).unwrap();
 
-                        let uri = params.text_document_position.text_document.uri.clone();
-                        let text = buffers.get(&uri);
-                        let resp = get_completion_response(text, params);
+                        let uri = &params.text_document_position.text_document.uri;
+                        // let text = buffers.get(&uri);
+                        let resp = buffer_csts
+                            .get(uri)
+                            .and_then(|buf| get_completion_response(&buf, params));
 
                         if let Some(resp) = resp {
                             let result = serde_json::to_value(&resp).unwrap();
@@ -110,12 +115,21 @@ fn main_loop(
                         if let Some(change) = params.content_changes.get(0) {
                             let text = change.text.clone();
 
-                            let doctree = DocumentTree::from_document(&text);
-                            if let Err(e) = doctree.tree {
-                                debug!("parse error: {:?}", e);
-                            }
+                            // let doctree = DocumentTree::from_document(&text);
+                            // if let Err(e) = doctree.tree {
+                            //     debug!("parse error: {:?}", e);
+                            // }
 
-                            buffers.set(uri, text);
+                            // buffers.set(uri, text);
+                            let bufcst = BufferCst::parse_into(text);
+                            match bufcst {
+                                Ok(bufcst) => {
+                                    buffer_csts.insert(uri, bufcst);
+                                }
+                                Err(e) => {
+                                    debug!("parse error: {:?}", e);
+                                }
+                            }
                         }
                     }
                     "textDocument/didOpen" => {
@@ -123,9 +137,15 @@ fn main_loop(
                         let uri = params.text_document.uri;
                         let text = params.text_document.text;
 
-                        let doctree = DocumentTree::from_document(&text);
-
-                        buffers.set(uri, text);
+                        let bufcst = BufferCst::parse_into(text);
+                        match bufcst {
+                            Ok(bufcst) => {
+                                buffer_csts.insert(uri, bufcst);
+                            }
+                            Err(e) => {
+                                debug!("parse error: {:?}", e);
+                            }
+                        }
                     }
                     _ => (),
                 }

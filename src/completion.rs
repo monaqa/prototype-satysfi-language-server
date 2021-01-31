@@ -11,20 +11,17 @@ use lsp_types::{
 };
 use serde::Deserialize;
 
-use crate::{
-    parser::{DocumentTree, Mode},
-    Environment,
-};
+use crate::{Environment, parser::{BufferCst, DocumentTree, Mode}};
 
 /// デフォルトで用意される補完候補。
 const COMPLETION_RESOUCES: &str = include_str!("resource/completion.toml");
 
 /// 補完候補を返す。
 pub fn get_completion_response(
-    text: Option<&str>,
+    buf: &BufferCst,
     params: CompletionParams,
 ) -> Option<CompletionResponse> {
-    let text = text?;
+    let text = &buf.buffer;
 
     let pos = params.text_document_position.position;
 
