@@ -29,9 +29,13 @@ cargo install --path .
 }
 ```
 
+この状態で `satysfi` の filetype を有するファイルを開けば language server が起動するかと思います。
+なお、デバッグのため Language server を起動させると同時に working directory に `test.log` というファイルが作成され、
+language server のログが書き込まれていきます。
+
 ## 機能
 
 まだほとんど何も揃っていません。
 現時点では一部の Completion のみ対応。
 
-テストなので、 Language server を起動させると同時に同ディレクトリに log ファイルが入ります。
+[実装メモ](./memo.md) に今後実装したいものなどを書いています。
