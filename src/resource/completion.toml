@@ -2,7 +2,7 @@
 
 [[primitive]]
 label = "let-inline"
-detail = "inline-cmd declaration"
+detail = "inline-cmd definition"
 insert_text = 'let-inline ${1:ctx} \\${2:cmd-name} ${3:args} = $0'
 insert_text_format = "snippet"
 documentation = '''
@@ -16,7 +16,7 @@ let-inline ctx \textbf = {The quick fox jumps over the lazy dog.}
 
 [[primitive]]
 label = "let-block"
-detail = "block-cmd declaration"
+detail = "block-cmd definition"
 insert_text = 'let-block ${1:ctx} +${2:cmd-name} ${3:args} = $0'
 insert_text_format = "snippet"
 documentation = '''
@@ -25,12 +25,30 @@ Declare new block-cmd.
 
 [[primitive]]
 label = "let-math"
-detail = "math-cmd declaration"
+detail = "math-cmd definition"
 insert_text = 'let-math \\${1:cmd-name} ${2:args} = $0'
 insert_text_format = "snippet"
 documentation = '''
 Declare new math-cmd.
 '''
+
+[[primitive]]
+label = 'direct inline-cmd'
+detail = "inline-cmd declaration (direct)"
+insert_text = 'direct \\${1:cmd-name} : [$0] inline-cmd'
+insert_text_format = "snippet"
+
+[[primitive]]
+label = 'direct block-cmd'
+detail = "block-cmd declaration (direct)"
+insert_text = 'direct +${1:cmd-name} : [$0] block-cmd'
+insert_text_format = "snippet"
+
+[[primitive]]
+label = 'direct math-cmd'
+detail = "math-cmd declaration (direct)"
+insert_text = 'direct \\${1:cmd-name} : [$0] math-cmd'
+insert_text_format = "snippet"
 
 [[primitive]]
 label = "inline-fil"
