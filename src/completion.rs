@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use anyhow::Result;
+use itertools::Itertools;
 use log::{debug, warn};
 use lsp_types::{
     CompletionItem, CompletionList, CompletionParams, CompletionResponse, Documentation,
@@ -67,7 +68,15 @@ fn load_completion_resources(
                     _ => vec![], // unreachable だが致命的ではないのでpanicしない
                 }
             } else {
-                load_primitive_completion_items()?
+                let mut vars = env.variables
+                    .iter()
+                    .map(|s| {
+                        CompletionItem::new_simple(s.name.clone(), s.name.clone())
+                    })
+                .collect_vec();
+                let primitives = load_primitive_completion_items()?;
+                vars.extend(primitives);
+                vars
             }
         }
 

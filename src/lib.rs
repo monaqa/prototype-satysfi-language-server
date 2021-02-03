@@ -300,6 +300,8 @@ pub struct Environment {
     block_cmds: Vec<BlockCmd>,
     /// 数式コマンド
     math_cmds: Vec<MathCmd>,
+    /// let 式で定義された変数
+    variables: Vec<Variable>,
 }
 
 impl Environment {
@@ -362,7 +364,21 @@ impl Environment {
                     })
                     .collect_vec();
 
-                Self { inline_cmds, block_cmds, math_cmds }
+                let variables = cst
+                    .pickup(Rule::let_stmt)
+                    .into_iter()
+                    .map(|cst| {
+                        let mut children = cst.inner.iter();
+                        let ptn = children.next().unwrap();
+                        ptn.pickup(Rule::var).into_iter().map(|cst| {
+                            let name = text.as_str(cst).to_owned();
+                            let def_range = cst.range.clone().into();
+                            Variable{ name, def_range }
+                        })
+                    }).flatten()
+                .collect_vec();
+
+                Self { inline_cmds, block_cmds, math_cmds, variables }
             }
         }
 
@@ -391,6 +407,15 @@ pub struct BlockCmd {
 #[derive(Debug)]
 pub struct MathCmd {
     /// コマンド名
+    name: String,
+    /// 定義の場所
+    def_range: Range,
+}
+
+/// 変数
+#[derive(Debug)]
+pub struct Variable {
+    /// 変数名
     name: String,
     /// 定義の場所
     def_range: Range,
