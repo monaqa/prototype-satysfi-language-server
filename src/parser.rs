@@ -32,3 +32,6 @@ pub enum Mode {
     /// コメント。
     Comment,
 }
+
+#[cfg(test)]
+mod tests;
