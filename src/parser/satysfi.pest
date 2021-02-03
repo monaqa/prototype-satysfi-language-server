@@ -4,7 +4,10 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 COMMENT = { "%" ~ comment_inner ~ ("\r" | "\n") }
 comment_inner = ${ (!("\r" | "\n") ~ ANY)* }
 
-program = { SOI ~ header_stage? ~ headers ~ (preamble ~ "in")? ~ expr ~ EOI }
+program = { program_satyh | program_saty }
+
+program_saty = { SOI ~ header_stage? ~ headers ~ (preamble ~ "in")? ~ expr ~ EOI }
+program_satyh = { SOI ~ header_stage? ~ headers ~ preamble ~ EOI }
 
 // header {{{
 
@@ -33,6 +36,7 @@ statement = {
     | let_block_stmt
     | let_math_stmt
     | let_mutable_stmt
+    | type_stmt
     | module_stmt
 }
 let_stmt = { "let" ~ pattern ~ stmt_argument? ~ "=" ~ expr }
@@ -50,6 +54,7 @@ let_block_stmt = {
 }
 let_math_stmt = { "let-math" ~ math_cmd_name ~ (pattern)* ~ "=" ~ expr }
 let_mutable_stmt = { "let-mutable" ~ var ~ "<-" ~ expr }
+type_stmt = { "type" ~ type_name ~ "=" ~ type_expr}
 
 stmt_argument = {
     // ":" ~ type_expr
@@ -66,11 +71,13 @@ module_stmt = {
     "module" ~ module_name ~ (":" ~ sig_stmt)? ~ "=" ~ struct_stmt
 }
 sig_stmt = { "sig" ~ sig_inner? ~ "end" }
-struct_stmt = { "struct" ~ struct_inner? ~ "end" }
+struct_stmt = { "struct" ~ statement+ ~ "end" }
 sig_inner = {
     (sig_type_stmt
      | sig_val_stmt
-     | sig_direct_stmt)+
+     | sig_direct_stmt
+     | dummy_sig_stmt
+     )+
 }
 sig_type_stmt = { "type" ~ type_param* ~ var ~ constraint* }
 sig_val_stmt = {
@@ -83,8 +90,9 @@ sig_direct_stmt = {
     ( inline_cmd_name | block_cmd_name)
     ~ ":" ~ type_expr ~ constraint*
 }
-struct_inner = _{ preamble }
 
+// signature statement の記入中。
+dummy_sig_stmt = { !"end" ~ var_ptn}
 // }}}
 
 // types {{{
@@ -100,9 +108,9 @@ type_unary = {
       type_list ~ "inline-cmd"
     | type_list ~ "block-cmd"
     | type_list ~ "math-cmd"
+    | type_application
     | "(" ~ type_expr ~ ")"
     | type_record
-    | type_application
     | type_param
     | type_name
 }
@@ -112,7 +120,7 @@ type_application_unit = {
     | type_param
     | type_name
 }
-type_name = _{ var | modvar }
+type_name = { var | modvar }
 type_list = {
     "[" ~ "]"
     | "[" ~ type_list_unit ~ (";" ~ type_list_unit)* ~ ";"? ~ "]"

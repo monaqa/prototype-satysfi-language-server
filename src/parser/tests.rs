@@ -78,8 +78,6 @@ mod header {
             ),
         );
     }
-
-
 }
 
 mod statement {
@@ -87,7 +85,29 @@ mod statement {
     use super::*;
 
     #[test]
-    fn test_statement() {
-        
+    fn test_type_statement() {
+        assert_parsed(
+            "type a = int",
+            pair(
+                Rule::type_stmt,
+                "type a = int",
+                &[
+                    pair(Rule::type_name, "a", &[pair(Rule::var, "a", &[])]),
+                    pair(
+                        Rule::type_expr,
+                        "int",
+                        &[pair(
+                            Rule::type_prod,
+                            "int",
+                            &[pair(
+                                Rule::type_unary,
+                                "int",
+                                &[pair(Rule::type_name, "int", &[pair(Rule::var, "int", &[])])],
+                            )],
+                        )],
+                    ),
+                ],
+            ),
+        )
     }
 }
